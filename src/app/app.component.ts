@@ -12,25 +12,45 @@ export class AppComponent implements OnInit {
   cols : any[] = [] ;
   rows : any[] = [] ;
   area: number = 0 ;
-  // value: number = 0 ;
-  purchase: any [] = [{ total : null, items : [ ] }, { total : null, items : [] }] ;
+  
+  purchase: any [] = [{ total : null, items : [{row: -1, col: -1}] }] ;
+  totalValue: number = 0 ;
+  currentValue: number = 0 ;
+  purchaseReady: boolean = false ;
 
 
   ngOnInit () { }
 
   computePurchase () {
-      let value = this.area * this.data.expenditure;
-      this.purchase = [{ total : null, items : [ ] }, { total : null, items : [] }] ;
+      let mode: number = 2;
+      let operator: any = { 
+                      value: this.area * this.data.expenditure,
+                      param1: null 
+                     };
+      this.currentValue = operator.value;
+      this.purchaseReady = false ; 
+      this.purchase = [{ total : null, items : [ ] }] ;
 
-      while ( value > 0 ) {
-        value = this.computeStep( value );
+
+      while ( operator.value > 0 ) {
+        if (operator.param1) { 
+            //режим закупки у одного поставщика
+            operator = this.computeStep( operator.value, mode, operator.param1) ;
+        } else {
+            operator = this.computeStep( operator.value, mode ) ;
+        }              
       }
 
+      this.totalValue = operator.value ;
+      this.purchaseReady = true ; 
+
+      console.log( "Закупка: " ) ;
       console.log( this.purchase ) ;
-      console.log( value ) ;
+      console.log( "Остаток: " ) ;
+      console.log( operator.value ) ;
   }
 
-  computeStep( value ): number {
+  computeStep( value: any, mode: any, row?: any ) {
     let minItem: any = { minLiter : Infinity } ;
     let maxItem: any = {} ;
     
@@ -39,15 +59,27 @@ export class AppComponent implements OnInit {
     //Разбивка колонок на два набора
     let colSplit: any = this.splitCol ( amount ) ;
     
-    //Поиск минимальныъ цен в найденных наборах
-    if ( colSplit.minColSet[0] != undefined ) {
-      //ищем минимальную цену за литр
-      minItem = this.searchInCol ( 'liter', colSplit.minColSet ) ; 
-    }   
-    if ( colSplit.maxColSet[0] != undefined ) {
-      //ищем минимальную цена за банку
-      maxItem = this.searchInCol ( 'price', colSplit.maxColSet ) ; 
-    }  
+    if ( row ) {
+        //Поиск минимальныъ цен в найденных наборах
+        if ( colSplit.minColSet[0] != undefined ) {
+          //ищем минимальную цену за литр
+          minItem = this.searchInRow ( 'liter', colSplit.minColSet, row ) ; 
+        }   
+        if ( colSplit.maxColSet[0] != undefined ) {
+          //ищем минимальную цена за банку
+          maxItem = this.searchInRow ( 'price', colSplit.maxColSet, row ) ; 
+        }
+    } else { 
+        //Поиск минимальныъ цен в найденных наборах
+        if ( colSplit.minColSet[0] != undefined ) {
+          //ищем минимальную цену за литр
+          minItem = this.searchInCol ( 'liter', colSplit.minColSet ) ; 
+        }   
+        if ( colSplit.maxColSet[0] != undefined ) {
+          //ищем минимальную цена за банку
+          maxItem = this.searchInCol ( 'price', colSplit.maxColSet ) ; 
+        }
+    }
 
     //покупаем из верхней выборки когда в нижней пусто или выгоднее цена
     if ( maxItem.minLiter < minItem.minLiter ) {
@@ -58,12 +90,18 @@ export class AppComponent implements OnInit {
     
     //покупаем из нижней выборки пока не будет остатка
     while( amount > minItem.size ) {
-        this.purchase[ 1 ].total = this.purchase[ 1 ].total + minItem.minPrice ;
-        this.purchase[ 1 ].items.push( minItem ) ;
+        this.purchase[ 0 ].total = this.purchase[ 0 ].total + minItem.minPrice ;
+        this.purchase[ 0 ].items.push( minItem ) ;
         amount = amount - minItem.size;      
-    }    
+    }
 
-    return amount; //возвращаем остаток
+    if ( mode == 2) {
+        return { value: amount, param1: minItem.row }; //возвращаем остаток c параетром
+    } else {
+        return { value: amount }; //возвращаем остаток
+    }
+
+   
   }
 
   splitCol ( amount: number ) : {} {
@@ -81,6 +119,30 @@ export class AppComponent implements OnInit {
       return {minColSet, maxColSet};
   }
 
+  searchInRow ( key: string, set: number[], row ) {
+          let item = { 
+                      row: null, 
+                      col: null, 
+                      size: null,
+                      minPrice: null,
+                      minLiter: null
+                     } ;
+          let min = this.rows[ row ].tovar[ set[ 0 ] ][ key ] ;
+
+          for ( let k=0; k < set.length; k++ )           
+              if ( this.rows[ row ].tovar[ set[ k ] ][ key ] <= min ) {
+                min = this.rows[ row ].tovar[ set[ k ] ][ key ] ;
+                item.row = row ;
+                item.col = set[ k ] ;
+              }
+
+          item.size = this.rows[ item.row ].tovar[ item.col ].size ;
+          item.minPrice = this.rows[ item.row ].tovar[ item.col ].price ;
+          item.minLiter = this.rows[ item.row ].tovar[ item.col ].liter ;
+
+          return item;
+  }
+
   searchInCol( key: string, set: number[] ) {          
           let item = { 
                       row: null, 
@@ -91,8 +153,8 @@ export class AppComponent implements OnInit {
                      } ;
           let min = this.rows[ 0 ].tovar[ set[ 0 ] ][ key ] ;
 
-          for ( let k=0; k<set.length; k++ )
-            for ( let i=0; i<this.rows.length; i++ ) {
+          for ( let k=0; k < set.length; k++ )
+            for ( let i=0; i < this.rows.length; i++ ) {
               if ( this.rows[ i ].tovar[ set[ k ] ][ key ] <= min ) {
                 min = this.rows[ i ].tovar[ set[ k ] ][ key ] ;
                 item.row = i ;

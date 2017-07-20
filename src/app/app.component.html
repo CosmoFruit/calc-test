@@ -1,21 +1,8 @@
 <div class="container">
 <form #tForm="ngForm" novalidate>
+    
     <div class="form-group row">
         <h4>1.</h4>
-        <label class="col-sm-4 form-control-label" for="area">
-            Укажите площадь для покраски в кв.м.
-        </label>   
-        <div class="col-sm-2">    
-           <input type="number" min="0" max="10000" class="form-control" 
-                  [(ngModel)]="area" name="area" #a="ngModel" required />            
-        </div>
-        <div [hidden]="a.valid" class="alert alert-danger">
-               Не указана площадь.
-        </div>
-    </div>
-
-    <div class="form-group row">
-        <h4>2.</h4>
         <label class="col-sm-4 form-control-label" for="file">
             Выберите JSON с данными о материале: 
         </label>
@@ -29,14 +16,7 @@
     </div>
 
     <div class="form-group row">
-        <h4>3.</h4>
-        <p class="form-control-label" *ngIf="data.expenditure"> 
-            Расход материала: <b>{{data.expenditure}}</b> литров на кв. м.
-        </p>
-        <p class="form-control-label" *ngIf="data.expenditure"> 
-            Нужный объем материала: <b>{{area * data.expenditure}}</b> литров.
-        </p>
-
+        <h4>2.</h4> 
         <div class="table-responsive">
         <table class="table table-condensed">
             <thead>
@@ -51,20 +31,27 @@
             </thead>
 
             <tbody>
-                <tr *ngFor="let row of rows" >
+                <tr *ngFor="let row of rows; let i = index " >
                     <td [attr.colspan]="cols.length+1" >
                         <table class="table table-striped table-hover table-bordered table-condensed">
-                            <tr align="center" >
+                            <tr align="center" 
+                                [ngClass]="{'success' : purchase[0].items[0].row == i}" 
+                            >
                                 <td width="100"> 
                                     Поставщик <strong>{{row.name}}</strong><br> цена за банку:
                                 </td>
-                                <td width="60" *ngFor="let item of row.tovar">
+                                <td width="60" *ngFor="let item of row.tovar" >
                                     {{ item.price }}
                                 </td>      
                             </tr> 
                             <tr align="center" >
                                 <td width="100"> Цена за литр: </td>
-                                <td width="60" *ngFor="let item of row.tovar"> 
+                                <td width="60" 
+                                    *ngFor="let item of row.tovar; let j = index"
+                                    [ngClass]="{'info' : (purchase[0].items[0].col == j) && 
+                                                         (purchase[0].items[0].row == i)
+                                               }" 
+                                > 
                                     {{ item.liter | number:'1.0-2'}} 
                                 </td> 
                             </tr> 
@@ -74,16 +61,53 @@
             </tbody>
         </table>
         </div>
+        <p class="form-control-label" *ngIf="data.expenditure"> 
+            Расход материала: <b>{{ data.expenditure }}</b> литров на кв. м.
+        </p>
+        <p class="form-control-label" *ngIf="data.expenditure"> 
+            Нужный объем материала: <b>{{ area * data.expenditure | number:'1.0-3' }}</b> литров.
+        </p>
+    </div>
+
+    <div class="form-group row">
+        <h4>3.</h4>
+        <label class="col-sm-4 form-control-label" for="area">
+            Укажите площадь для покраски в кв.м.
+        </label>   
+        <div class="col-sm-2">    
+           <input type="number" min="0" max="10000" class="form-control" 
+                  [(ngModel)]="area" name="area" #a="ngModel" required />            
+        </div>
+        <div [hidden]="a.valid" class="alert alert-danger">
+               Не указана площадь.
+        </div>
+        <div [hidden]="area > 0" class="alert alert-danger">
+               Площадь должна быть больше нуля.
+        </div>
     </div>
 
     <div class="form-group row">
         <h4>4.</h4>
         <button type="button" class="btn btn-primary" 
-                [disabled]="tForm.invalid || !data.expenditure"
+                [disabled]="tForm.invalid || !data.expenditure || (area <= 0)"
                 (click)="computePurchase()"
         > 
             Расчитать выгодную закупку
         </button>
+        <div *ngIf="purchaseReady">
+          <p>Минимальная стоимость закупки у одного поставщика без учета доставки:</p>
+          <p>Выгодно купить у поставщика <strong>{{rows[ purchase[0].items[0].row ].name }}</strong> 
+             на сумму <strong> {{ purchase[0].total }} </strong>.</p> 
+          <p>Детали заказа: 
+            <span *ngFor="let item of purchase[0].items; let l = last "> 
+              {{item.size}}л. ({{ item.minPrice }}) 
+              <span *ngIf="!l"> + </span>
+            </span>          
+          </p>
+          <p>Всего: <b>{{ currentValue-totalValue }}л.</b> 
+             Остаток материалов: <b>{{ -totalValue | number:'1.0-3' }}л.</b> 
+          </p>
+        </div>
     </div>
 </form>
 </div>
