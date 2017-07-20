@@ -29,7 +29,7 @@ export class AppComponent implements OnInit {
                      };
       this.currentValue = operator.value;
       this.purchaseReady = false ; 
-      this.purchase = [{ total : null, items : [ ] }] ;
+      this.purchase = [{ total : null, items : [ ], clon: 1 }] ;
 
 
       while ( operator.value > 0 ) {
@@ -92,6 +92,7 @@ export class AppComponent implements OnInit {
     while( amount > minItem.size ) {
         this.purchase[ 0 ].total = this.purchase[ 0 ].total + minItem.minPrice ;
         this.purchase[ 0 ].items.push( minItem ) ;
+        this.purchase[ 0 ].clon += 1 ;
         amount = amount - minItem.size;      
     }
 

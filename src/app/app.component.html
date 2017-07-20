@@ -96,15 +96,17 @@
         </button>
         <div *ngIf="purchaseReady">
           <p>Минимальная стоимость закупки у одного поставщика без учета доставки:</p>
-          <p>Выгодно купить у поставщика <strong>{{rows[ purchase[0].items[0].row ].name }}</strong> 
-             на сумму <strong> {{ purchase[0].total }} </strong>.</p> 
+          <p>Выгодно купить у поставщика <strong>{{ rows[ purchase[0].items[0].row ].name }}</strong> 
+             на сумму <strong> {{ purchase[0].total | number:'1.0-3' }} </strong>.</p> 
           <p>Детали заказа: 
-            <span *ngFor="let item of purchase[0].items; let l = last "> 
-              {{item.size}}л. ({{ item.minPrice }}) 
-              <span *ngIf="!l"> + </span>
+            <span *ngFor="let item of purchase[0].items; let l = last; let f = first "> 
+              <span *ngIf=" f && (l != f ) "> 
+                <b> {{ purchase[0].clon - 1 }}шт.</b> {{item.size}}л. ({{ item.minPrice }}) +
+              </span>
+              <span *ngIf=" l "> {{item.size}}л. ({{ item.minPrice }}) </span>
             </span>          
           </p>
-          <p>Всего: <b>{{ currentValue-totalValue }}л.</b> 
+          <p>Всего: <b>{{ currentValue-totalValue | number:'1.0-3' }}л.</b> 
              Остаток материалов: <b>{{ -totalValue | number:'1.0-3' }}л.</b> 
           </p>
         </div>
